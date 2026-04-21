@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atomlar & Periyodik Tablo</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#020408;--bg2:#060d1a;--card:#0a1628;--card2:#0d1f38;
+  --border:#1a3a5c;--border2:#0f2a45;
+  --cyan:#00f5ff;--orange:#ff6b35;--purple:#a855f7;--green:#00ff88;
+  --text:#e8f8ff;--muted:#4a7a9b;--muted2:#2a5a7a;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;cursor:none;}
+
+#cursor{width:12px;height:12px;background:var(--cyan);border-radius:50%;position:fixed;pointer-events:none;z-index:99999;transition:transform 0.1s;box-shadow:0 0 15px var(--cyan),0 0 30px rgba(0,245,255,0.4);transform:translate(-50%,-50%);}
+#cursor-ring{width:36px;height:36px;border:1px solid rgba(0,245,255,0.5);border-radius:50%;position:fixed;pointer-events:none;z-index:99998;transition:transform 0.15s ease,width 0.2s,height 0.2s;transform:translate(-50%,-50%);}
+
+#stars-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+#hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1;overflow:hidden;}
+.hero-glow{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(0,245,255,0.06) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%);animation:pulseGlow 4s ease-in-out infinite;pointer-events:none;}
+@keyframes pulseGlow{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:0.6;}50%{transform:translate(-50%,-50%) scale(1.2);opacity:1;}}
+
+#atom-canvas{display:block;margin:0 auto;filter:drop-shadow(0 0 30px rgba(0,245,255,0.3));}
+
+.hero-title{font-family:'Orbitron',monospace;font-size:clamp(1.8rem,5vw,4.5rem);font-weight:900;text-align:center;letter-spacing:3px;margin-top:-20px;line-height:1.1;background:linear-gradient(135deg,#ffffff 0%,var(--cyan) 50%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:titleGlow 3s ease-in-out infinite;}
+@keyframes titleGlow{0%,100%{filter:brightness(1);}50%{filter:brightness(1.3);}}
+.hero-sub{text-align:center;color:var(--muted);font-size:0.95rem;letter-spacing:6px;text-transform:uppercase;margin-top:14px;font-weight:300;}
+
+.scroll-hint{position:absolute;bottom:40px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:10px;letter-spacing:3px;text-transform:uppercase;animation:float 2s ease-in-out infinite;}
+.scroll-arrow{width:18px;height:18px;border-right:2px solid var(--cyan);border-bottom:2px solid var(--cyan);transform:rotate(45deg);animation:arrowPulse 1.5s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+@keyframes arrowPulse{0%,100%{opacity:0.3}50%{opacity:1}}
+
+#author-btn{position:fixed;top:24px;right:24px;z-index:1000;background:rgba(0,245,255,0.05);border:1px solid rgba(0,245,255,0.3);color:var(--cyan);font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;padding:12px 20px;border-radius:4px;cursor:none;transition:all 0.3s;text-transform:uppercase;backdrop-filter:blur(10px);}
+#author-btn:hover{background:rgba(0,245,255,0.12);box-shadow:0 0 20px rgba(0,245,255,0.3);}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);z-index:9999;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:44px;max-width:400px;width:90%;position:relative;animation:modalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);box-shadow:0 0 60px rgba(0,245,255,0.1);}
+.modal-box::before{content:'';position:absolute;top:-1px;left:20%;right:20%;height:2px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);}
+@keyframes modalIn{from{opacity:0;transform:scale(0.8) translateY(30px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--muted);font-size:18px;cursor:none;transition:color 0.2s;}
+.modal-close:hover{color:var(--cyan);}
+.modal-icon{width:56px;height:56px;border:1px solid rgba(0,245,255,0.3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 20px;background:rgba(0,245,255,0.05);}
+.modal-box h3{font-family:'Orbitron',monospace;font-size:0.9rem;letter-spacing:3px;text-align:center;margin-bottom:8px;color:var(--cyan);}
+.modal-box p{color:var(--muted);font-size:0.82rem;text-align:center;line-height:1.7;margin-bottom:24px;}
+#codeInput{width:100%;background:var(--bg2);border:1px solid var(--border);color:var(--cyan);font-family:'Orbitron',monospace;font-size:15px;padding:14px 16px;border-radius:4px;outline:none;letter-spacing:4px;text-align:center;margin-bottom:14px;transition:border-color 0.2s,box-shadow 0.2s;}
+#codeInput:focus{border-color:var(--cyan);box-shadow:0 0 20px rgba(0,245,255,0.15);}
+#modalSubmit{width:100%;background:linear-gradient(135deg,rgba(0,245,255,0.15),rgba(0,245,255,0.05));border:1px solid rgba(0,245,255,0.4);color:var(--cyan);font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;padding:14px;border-radius:4px;cursor:none;transition:all 0.3s;text-transform:uppercase;}
+#modalSubmit:hover{background:rgba(0,245,255,0.2);box-shadow:0 0 20px rgba(0,245,255,0.2);}
+#modalResult{margin-top:14px;padding:14px;border-radius:4px;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1px;text-align:center;display:none;line-height:1.8;}
+#modalResult.ok{background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.3);color:var(--green);display:block;}
+#modalResult.fail{background:rgba(255,107,53,0.06);border:1px solid rgba(255,107,53,0.3);color:var(--orange);display:block;}
+
+main{position:relative;z-index:1;}
+section{padding:90px 0;max-width:1000px;margin:0 auto;padding-left:24px;padding-right:24px;}
+.section-tag{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:5px;text-transform:uppercase;color:var(--cyan);margin-bottom:12px;opacity:0.7;}
+.section-title{font-family:'Orbitron',monospace;font-size:clamp(1.3rem,2.5vw,2rem);font-weight:700;margin-bottom:40px;letter-spacing:1px;position:relative;display:inline-block;}
+.section-title::after{content:'';position:absolute;bottom:-10px;left:0;width:60px;height:2px;background:linear-gradient(90deg,var(--cyan),transparent);}
+
+.particles-row{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:40px;}
+.p-card{background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:32px 24px;text-align:center;position:relative;overflow:hidden;transition:transform 0.3s,border-color 0.3s;}
+.p-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.p-card.proton::before{background:linear-gradient(90deg,transparent,var(--orange),transparent);}
+.p-card.notron::before{background:linear-gradient(90deg,transparent,var(--muted),transparent);}
+.p-card.elektron::before{background:linear-gradient(90deg,transparent,var(--cyan),transparent);}
+.p-card:hover{transform:translateY(-6px);}
+.p-card.proton:hover{border-color:var(--orange);box-shadow:0 8px 40px rgba(255,107,53,0.15);}
+.p-card.notron:hover{border-color:var(--muted);box-shadow:0 8px 40px rgba(74,122,155,0.2);}
+.p-card.elektron:hover{border-color:var(--cyan);box-shadow:0 8px 40px rgba(0,245,255,0.15);}
+.p-symbol{font-family:'Orbitron',monospace;font-size:2.5rem;font-weight:900;margin-bottom:8px;line-height:1;}
+.p-card.proton .p-symbol{color:var(--orange);}
+.p-card.notron .p-symbol{color:var(--muted);}
+.p-card.elektron .p-symbol{color:var(--cyan);}
+.p-name{font-size:1rem;font-weight:600;margin-bottom:16px;}
+.p-charge{font-family:'Orbitron',monospace;font-size:1.4rem;font-weight:700;margin-bottom:8px;}
+.p-card.proton .p-charge{color:var(--orange);}
+.p-card.notron .p-charge{color:var(--muted);}
+.p-card.elektron .p-charge{color:var(--cyan);}
+.p-desc{color:var(--muted);font-size:0.82rem;line-height:1.7;}
+
+.data-table{width:100%;border-collapse:collapse;margin:20px 0;}
+.data-table th{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--cyan);padding:12px 16px;text-align:left;border-bottom:1px solid var(--border);background:rgba(0,245,255,0.03);}
+.data-table td{padding:13px 16px;border-bottom:1px solid var(--border2);color:var(--muted);font-size:0.87rem;transition:color 0.2s,background 0.2s;}
+.data-table tr:hover td{color:var(--text);background:rgba(0,245,255,0.03);}
+.data-table td:first-child{color:var(--text);font-weight:600;}
+
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.info-card{background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:28px;transition:border-color 0.3s,transform 0.3s;position:relative;overflow:hidden;}
+.info-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,245,255,0.2),transparent);transform:scaleX(0);transition:transform 0.4s;}
+.info-card:hover::after{transform:scaleX(1);}
+.info-card:hover{border-color:rgba(0,245,255,0.3);transform:translateY(-3px);}
+.ic-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.ic-dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);flex-shrink:0;}
+.ic-dot.orange{background:var(--orange);box-shadow:0 0 10px var(--orange);}
+.ic-dot.purple{background:var(--purple);box-shadow:0 0 10px var(--purple);}
+.ic-dot.green{background:var(--green);box-shadow:0 0 10px var(--green);}
+.info-card h3{font-size:0.95rem;font-weight:600;}
+.info-card p,.info-card ul{color:var(--muted);font-size:0.86rem;line-height:1.85;}
+.info-card ul{padding-left:16px;}
+.info-card li{margin-bottom:6px;}
+strong{color:var(--text);}
+code{font-family:'Orbitron',monospace;font-size:0.82em;color:var(--cyan);background:rgba(0,245,255,0.06);padding:2px 6px;border-radius:3px;}
+
+.full-card{background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:32px 36px;margin-bottom:20px;position:relative;overflow:hidden;}
+.full-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);opacity:0.4;}
+.full-card h3{font-size:1rem;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:10px;}
+.full-card p{color:var(--muted);font-size:0.9rem;line-height:1.85;}
+
+/* PERIODIC TABLE */
+.pt-row{display:flex;gap:4px;margin-bottom:4px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;}
+.pt-cell{width:44px;height:50px;background:var(--card);border:1px solid var(--border2);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:none;transition:all 0.2s;flex-shrink:0;}
+.pt-cell .num{font-family:'Orbitron',monospace;font-size:7px;color:var(--muted2);line-height:1;}
+.pt-cell .sym{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;color:var(--text);line-height:1.2;}
+.pt-cell .nm{font-size:6px;color:var(--muted2);line-height:1;text-align:center;}
+.pt-cell:hover,.pt-cell.active{transform:scale(1.15) translateY(-4px);z-index:10;}
+.pt-cell.alkali .sym{color:var(--orange);}
+.pt-cell.alkali:hover,.pt-cell.alkali.active{background:rgba(255,107,53,0.1);border-color:var(--orange);box-shadow:0 8px 24px rgba(255,107,53,0.2);}
+.pt-cell.noble .sym{color:var(--purple);}
+.pt-cell.noble:hover,.pt-cell.noble.active{background:rgba(168,85,247,0.1);border-color:var(--purple);box-shadow:0 8px 24px rgba(168,85,247,0.2);}
+.pt-cell.nonmetal .sym{color:var(--green);}
+.pt-cell.nonmetal:hover,.pt-cell.nonmetal.active{background:rgba(0,255,136,0.1);border-color:var(--green);box-shadow:0 8px 24px rgba(0,255,136,0.2);}
+.pt-cell.metal .sym{color:#c0c0ff;}
+.pt-cell.metal:hover,.pt-cell.metal.active{background:rgba(192,192,255,0.1);border-color:#c0c0ff;box-shadow:0 8px 24px rgba(192,192,255,0.2);}
+.pt-cell.halogen .sym{color:#ff80ab;}
+.pt-cell.halogen:hover,.pt-cell.halogen.active{background:rgba(255,128,171,0.1);border-color:#ff80ab;box-shadow:0 8px 24px rgba(255,128,171,0.2);}
+
+.element-tooltip{display:none;position:fixed;background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:14px 18px;z-index:1000;min-width:190px;box-shadow:0 8px 32px rgba(0,0,0,0.6);pointer-events:none;}
+.element-tooltip.show{display:block;}
+.element-tooltip .t-sym{font-family:'Orbitron',monospace;font-size:2rem;font-weight:900;color:var(--cyan);}
+.element-tooltip .t-name{font-weight:600;margin-bottom:10px;font-size:0.95rem;}
+.element-tooltip .t-row{display:flex;justify-content:space-between;color:var(--muted);margin-top:5px;font-size:11px;gap:16px;}
+.element-tooltip .t-val{color:var(--text);}
+
+.pt-legend{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:16px;}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.leg-dot{width:10px;height:10px;border-radius:2px;}
+
+/* QUIZ */
+.quiz-wrap{background:var(--card);border:1px solid var(--border2);border-radius:8px;padding:36px;position:relative;overflow:hidden;}
+.quiz-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--cyan),var(--orange));}
+.q-progress{display:flex;gap:8px;margin-bottom:24px;}
+.q-dot{flex:1;height:3px;background:var(--border);border-radius:2px;transition:background 0.4s;}
+.q-dot.done{background:var(--cyan);}
+.q-dot.current{background:var(--purple);animation:dotPulse 1s ease-in-out infinite;}
+@keyframes dotPulse{0%,100%{opacity:0.6}50%{opacity:1}}
+.q-num{font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--cyan);margin-bottom:10px;}
+.q-text{font-size:1.05rem;font-weight:500;margin-bottom:26px;line-height:1.5;}
+.q-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.q-btn{background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:'Inter',sans-serif;font-size:0.87rem;padding:14px 18px;border-radius:6px;cursor:none;transition:all 0.2s;text-align:left;line-height:1.4;}
+.q-btn:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,245,255,0.05);}
+.q-btn.correct{background:rgba(0,255,136,0.08);border-color:var(--green);color:var(--green);}
+.q-btn.wrong{background:rgba(255,107,53,0.08);border-color:var(--orange);color:var(--orange);}
+.q-feedback{margin-top:18px;font-size:0.87rem;color:var(--muted);min-height:24px;line-height:1.6;}
+.q-next{display:inline-block;margin-top:20px;background:none;border:1px solid var(--border);color:var(--muted);font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;padding:10px 20px;border-radius:4px;cursor:none;text-transform:uppercase;transition:all 0.2s;}
+.q-next:hover{border-color:var(--cyan);color:var(--cyan);}
+
+.divider{border:none;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0;}
+
+footer{position:relative;z-index:1;border-top:1px solid var(--border2);padding:40px 24px;text-align:center;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:3px;color:var(--muted2);text-transform:uppercase;}
+
+.float-particle{position:fixed;pointer-events:none;z-index:0;animation:floatUp linear infinite;opacity:0;}
+@keyframes floatUp{0%{transform:translateY(100vh) scale(0);opacity:0;}10%{opacity:0.6;}90%{opacity:0.3;}100%{transform:translateY(-100px) scale(1);opacity:0;}}
+
+.reveal{opacity:0;transform:translateY(30px);transition:opacity 0.7s ease,transform 0.7s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+@media(max-width:700px){
+  .particles-row{grid-template-columns:1fr;}
+  .info-grid{grid-template-columns:1fr;}
+  .q-opts{grid-template-columns:1fr;}
+  .pt-cell{width:34px;height:42px;}
+  .pt-cell .sym{font-size:10px;}
+  .full-card{padding:24px 20px;}
+}
+</style>
+</head>
+<body>
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
+<canvas id="stars-canvas"></canvas>
+<button id="author-btn" onclick="openModal()">⬡ Kim Yaptı?</button>
+
+<div class="modal-overlay" id="modalOverlay" onclick="bgClose(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-icon">⚛</div>
+    <h3>Gizli Erişim</h3>
+    <p>Bu projeyi hazırlayanın kim olduğunu görmek için erişim kodunu girin.</p>
+    <input type="text" id="codeInput" placeholder="_ _ _ _ _ _ _ _" maxlength="20" onkeydown="if(event.key==='Enter')checkCode()" autocomplete="off"/>
+    <button id="modalSubmit" onclick="checkCode()">Doğrula</button>
+    <div id="modalResult"></div>
+  </div>
+</div>
+
+<section id="hero">
+  <div class="hero-glow"></div>
+  <canvas id="atom-canvas" width="280" height="280"></canvas>
+  <h1 class="hero-title">ATOMLAR &<br>PERİYODİK TABLO</h1>
+  <p class="hero-sub">Maddenin Sırları · 9. Sınıf Kimya</p>
+  <div class="scroll-hint"><span>Keşfet</span><div class="scroll-arrow"></div></div>
+</section>
+<hr class="divider">
+
+<main>
+<section class="reveal">
+  <div class="section-tag">// 01 — Temel Kavram</div>
+  <h2 class="section-title">Atom Nedir?</h2>
+  <div class="full-card" style="margin-bottom:24px">
+    <h3>⚛ Maddenin En Küçük Yapı Taşı</h3>
+    <p><strong>Atom</strong>, bir elementin kimyasal özelliklerini taşıyan en küçük parçacıktır. Gözle görülemeyecek kadar küçük olan atomlar evrenin temel yapı taşıdır. Bir atomun çapı yaklaşık <code>0.1 nm</code> (0.0000001 mm) kadardır. Bir insan saçının kalınlığı boyunca yan yana bir <strong>milyon</strong> atom dizebilirsiniz. Tüm maddeler — su, hava, metal, insan vücudu — atomlardan meydana gelir.</p>
+  </div>
+  <div class="full-card">
+    <h3>📜 Atom Teorisinin Tarihi</h3>
+    <table class="data-table">
+      <tr><th>Bilim İnsanı</th><th>Yıl</th><th>Katkı</th></tr>
+      <tr><td>Demokritos</td><td>MÖ 450</td><td>"Atomos" (bölünemez) kavramını ortaya attı. Maddenin bölünemez parçacıklardan oluştuğunu savundu.</td></tr>
+      <tr><td>John Dalton</td><td>1803</td><td>Modern atom teorisini kurdu. Elementlerin küçük, bölünemez kürelerden oluştuğunu öne sürdü.</td></tr>
+      <tr><td>J.J. Thomson</td><td>1897</td><td>Elektronu keşfetti. "Üzümlü kek" modelini önerdi.</td></tr>
+      <tr><td>Ernest Rutherford</td><td>1911</td><td>Altın levha deneyi ile çekirdeği keşfetti. Atomun büyük çoğunluğunun boş uzay olduğunu kanıtladı.</td></tr>
+      <tr><td>Niels Bohr</td><td>1913</td><td>Elektronların belirli enerji yörüngelerinde döndüğünü keşfetti. Modern atom modelinin temelini attı.</td></tr>
+    </table>
+  </div>
+</section>
+<hr class="divider">
+
+<section class="reveal">
+  <div class="section-tag">// 02 — Yapısal Bileşenler</div>
+  <h2 class="section-title">Altatomik Parçacıklar</h2>
+  <div class="particles-row">
+    <div class="p-card proton">
+      <div class="p-symbol">p</div>
+      <div class="p-name">Proton</div>
+      <div class="p-charge">+1</div>
+      <div class="p-desc">Çekirdekte bulunur. Sayısı elementin kimliğini belirler: <strong>atom numarası (Z) = proton sayısı</strong>. Kütlesi ≈ 1 amu.</div>
+    </div>
+    <div class="p-card notron">
+      <div class="p-symbol">n</div>
+      <div class="p-name">Nötron</div>
+      <div class="p-charge">0</div>
+      <div class="p-desc">Çekirdekte bulunur, elektrik yükü taşımaz. İzotopları oluşturur. Kütlesi ≈ 1 amu.</div>
+    </div>
+    <div class="p-card elektron">
+      <div class="p-symbol">e</div>
+      <div class="p-name">Elektron</div>
+      <div class="p-charge">−1</div>
+      <div class="p-desc">Çekirdek çevresinde yörüngelerde hareket eder. Kütlesi protonun <strong>1/1836'sı</strong> kadardır.</div>
+    </div>
+  </div>
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="ic-header"><div class="ic-dot orange"></div><h3>Çekirdek (Nükleus)</h3></div>
+      <p>Proton ve nötronlardan oluşan çekirdek, atomun kütlesinin <strong>%99.97'sini</strong> barındırır. Buna karşın atomun hacminin yalnızca <strong>%0.001'i</strong> kadar yer kaplar. Geri kalan büyük boşlukta elektronlar hareket eder.</p>
+    </div>
+    <div class="info-card">
+      <div class="ic-header"><div class="ic-dot"></div><h3>Elektron Kabuğu</h3></div>
+      <p>Elektronlar belirli enerji düzeylerinde (katmanlarda) bulunur:<br>
+      <strong>K kabuğu:</strong> max 2 e⁻<br>
+      <strong>L kabuğu:</strong> max 8 e⁻<br>
+      <strong>M kabuğu:</strong> max 18 e⁻<br>
+      En dıştaki kabukta bulunan elektronlara <strong>valans elektronu</strong> denir.</p>
+    </div>
+    <div class="info-card">
+      <div class="ic-header"><div class="ic-dot purple"></div><h3>Atom Numarası & Kütle</h3></div>
+      <p><strong>Z (Atom No):</strong> Proton sayısı. Elementin kimliği.<br><br>
+      <strong>A (Kütle No):</strong> Proton + Nötron<br><code>A = Z + N</code><br><br>
+      Örnek: ₁₇Cl³⁵ → 17 proton + 18 nötron</p>
+    </div>
+    <div class="info-card">
+      <div class="ic-header"><div class="ic-dot green"></div><h3>Elektron Dizilişi</h3></div>
+      <p>Sodyum (Na, Z=11):<br>
+      <code>1s² 2s² 2p⁶ 3s¹</code><br><br>
+      Dış kabukta <strong>1 valans elektronu</strong> → Na kolayca elektron vererek <strong>Na⁺</strong> katyonu oluşturur → <strong>Grup 1A</strong>'da yer alır.</p>
+    </div>
+  </div>
+</section>
+<hr class="divider">
+
+<section class="reveal">
+  <div class="section-tag">// 03 — Sınıflandırma Sistemi</div>
+  <h2 class="section-title">Periyodik Tablo</h2>
+  <div class="full-card" style="margin-bottom:24px">
+    <h3>📊 Nasıl Düzenlendi?</h3>
+    <p>Dmitri Mendeleev 1869'da elementleri tekrarlayan özelliklerine göre düzenledi. Modern tabloda elementler <strong>atom numarasına</strong> göre sıralanır. 118 bilinen element vardır. <strong>Yatay satırlar = periyotlar (7 adet)</strong>, <strong>dikey sütunlar = gruplar (18 adet)</strong>. Aynı gruptaki elementler benzer kimyasal davranış sergiler çünkü aynı sayıda valans elektronuna sahiptirler.</p>
+  </div>
+  <div class="full-card">
+    <h3>🧪 Periyot 1–3 Elementleri (İnteraktif)</h3>
+    <p style="color:var(--muted);font-size:0.83rem;margin-bottom:16px">Üzerine gelin → element detaylarını görün</p>
+    <div class="pt-legend" id="ptLegend"></div>
+    <div id="ptContainer"></div>
+  </div>
+  <div id="elemTooltip" class="element-tooltip"></div>
+  <div class="info-grid" style="margin-top:20px">
+    <div class="info-card">
+      <div class="ic-header"><div class="ic-dot orange"></div><h3>İzotoplar</h3></div>
+      <p>Aynı elementin <strong>proton sayısı eşit</strong> ama <strong>nötron sayısı farklı</strong> atomlarıdır. Kimyasal özellikler aynı kalır, kütle değişir.<br><br>Örnek: ¹H (0n) · ²H Döteryum (1n) · ³H Trityum (2n)</p>
+    </div>
+    <div class="info-card">
+      <div class="ic-header"><div class="ic-dot purple"></div><h3>İyonlar</h3></div>
+      <p>Atom elektron <strong>kaybederse</strong> → <strong>Katyon (+)</strong><br>Örn: Na → Na⁺ + e⁻<br><br>Atom elektron <strong>kazanırsa</strong> → <strong>Anyon (−)</strong><br>Örn: Cl + e⁻ → Cl⁻<br><br>Element kimliği korunur, yük değişir.</p>
+    </div>
+  </div>
+</section>
+<hr class="divider">
+
+<section class="reveal">
+  <div class="section-tag">// 04 — Kendini Test Et</div>
+  <h2 class="section-title">Mini Sınav</h2>
+  <div class="quiz-wrap" id="quizWrap"></div>
+</section>
+</main>
+
+<footer>Kimya Projesi &nbsp;·&nbsp; Periyodik Tablo & Atomlar &nbsp;·&nbsp; 9. Sınıf</footer>
+
+<script>
+// ── CURSOR ──
+const cur=document.getElementById('cursor'),ring=document.getElementById('cursor-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px';});
+(function animR(){rx+=(mx-rx)*0.12;ry+=(my-ry)*0.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(animR);})();
+function bigCursor(){cur.style.transform='translate(-50%,-50%) scale(1.8)';ring.style.width='60px';ring.style.height='60px';}
+function normCursor(){cur.style.transform='translate(-50%,-50%) scale(1)';ring.style.width='36px';ring.style.height='36px';}
+document.querySelectorAll('button,.p-card,.info-card,.pt-cell').forEach(el=>{el.addEventListener('mouseenter',bigCursor);el.addEventListener('mouseleave',normCursor);});
+
+// ── STARS ──
+const sc=document.getElementById('stars-canvas'),sctx=sc.getContext('2d');
+let stars=[];
+function rsz(){sc.width=window.innerWidth;sc.height=window.innerHeight;stars=[];for(let i=0;i<200;i++)stars.push({x:Math.random()*sc.width,y:Math.random()*sc.height,r:Math.random()*1.2+0.2,a:Math.random(),da:Math.random()*0.005+0.002,d:Math.random()*0.08});}
+rsz();window.addEventListener('resize',rsz);
+(function ds(){sctx.clearRect(0,0,sc.width,sc.height);stars.forEach(s=>{s.a+=s.da;if(s.a>1||s.a<0)s.da*=-1;s.x-=s.d;if(s.x<-2)s.x=sc.width+2;sctx.beginPath();sctx.arc(s.x,s.y,s.r,0,Math.PI*2);sctx.fillStyle=`rgba(100,200,255,${s.a*0.6})`;sctx.fill();});requestAnimationFrame(ds);})();
+
+// ── ATOM CANVAS ──
+const ac=document.getElementById('atom-canvas'),ax=ac.getContext('2d'),CX=140,CY=140;
+const orbits=[
+  {r:50,speed:0.024,electrons:[{angle:0}],tilt:0.3},
+  {r:80,speed:0.016,electrons:[{angle:Math.PI},{angle:Math.PI*2/3}],tilt:-0.5},
+  {r:108,speed:0.010,electrons:[{angle:Math.PI/3},{angle:Math.PI},{angle:5*Math.PI/3}],tilt:1.0},
+];
+let np=0;
+(function da(){ax.clearRect(0,0,280,280);np+=0.03;
+  const ng=ax.createRadialGradient(CX,CY,0,CX,CY,20+Math.sin(np)*4);
+  ng.addColorStop(0,'rgba(255,150,80,1)');ng.addColorStop(0.5,'rgba(220,80,30,0.8)');ng.addColorStop(1,'rgba(180,40,10,0)');
+  ax.beginPath();ax.arc(CX,CY,20+Math.sin(np)*4,0,Math.PI*2);ax.fillStyle=ng;ax.fill();
+  const og=ax.createRadialGradient(CX,CY,18,CX,CY,38);
+  og.addColorStop(0,'rgba(255,100,50,0.15)');og.addColorStop(1,'rgba(255,100,50,0)');
+  ax.beginPath();ax.arc(CX,CY,38,0,Math.PI*2);ax.fillStyle=og;ax.fill();
+  ax.beginPath();ax.arc(CX-5,CY-4,5,0,Math.PI*2);ax.fillStyle='rgba(255,200,100,0.6)';ax.fill();
+  ax.beginPath();ax.arc(CX+4,CY+3,4,0,Math.PI*2);ax.fillStyle='rgba(255,150,80,0.5)';ax.fill();
+  orbits.forEach((o,oi)=>{
+    ax.save();ax.translate(CX,CY);ax.rotate(o.tilt);
+    ax.beginPath();ax.ellipse(0,0,o.r,o.r*0.42,0,0,Math.PI*2);
+    ax.strokeStyle=`rgba(0,245,255,${0.12+oi*0.04})`;ax.lineWidth=1;ax.stroke();
+    o.electrons.forEach(e=>{
+      e.angle+=o.speed;
+      const ex=Math.cos(e.angle)*o.r,ey=Math.sin(e.angle)*o.r*0.42;
+      const depth=(Math.sin(e.angle)+1)/2,sz=3+depth*3,alpha=0.4+depth*0.6;
+      const eg=ax.createRadialGradient(ex,ey,0,ex,ey,sz*3);
+      eg.addColorStop(0,`rgba(0,245,255,${alpha*0.8})`);eg.addColorStop(1,'rgba(0,245,255,0)');
+      ax.beginPath();ax.arc(ex,ey,sz*3,0,Math.PI*2);ax.fillStyle=eg;ax.fill();
+      ax.beginPath();ax.arc(ex,ey,sz,0,Math.PI*2);ax.fillStyle=`rgba(0,245,255,${alpha})`;ax.fill();
+      for(let t=1;t<=4;t++){const ta=e.angle-o.speed*t*2,tx=Math.cos(ta)*o.r,ty=Math.sin(ta)*o.r*0.42;ax.beginPath();ax.arc(tx,ty,sz*(1-t/5),0,Math.PI*2);ax.fillStyle=`rgba(0,245,255,${alpha*(1-t/5)*0.25})`;ax.fill();}
+    });
+    ax.restore();
+  });
+  requestAnimationFrame(da);
+})();
+
+// ── FLOATING SYMBOLS ──
+const syms=['H','He','Li','C','N','O','Na','Fe','Au','⚛','e⁻','p⁺','Cl'];
+for(let i=0;i<14;i++){
+  const p=document.createElement('div');p.className='float-particle';
+  if(Math.random()>0.5){
+    p.style.cssText=`position:fixed;pointer-events:none;z-index:0;color:rgba(0,245,255,0.07);font-family:'Orbitron',monospace;font-size:${10+Math.random()*14}px;animation:floatUp ${12+Math.random()*20}s linear infinite;left:${Math.random()*100}%;animation-delay:${Math.random()*15}s;`;
+    p.textContent=syms[Math.floor(Math.random()*syms.length)];
+  } else {
+    p.style.cssText=`position:fixed;pointer-events:none;z-index:0;width:${2+Math.random()*4}px;height:${2+Math.random()*4}px;background:rgba(0,245,255,${0.1+Math.random()*0.15});border-radius:50%;animation:floatUp ${15+Math.random()*20}s linear infinite;left:${Math.random()*100}%;animation-delay:${Math.random()*20}s;`;
+  }
+  document.body.appendChild(p);
+}
+
+// ── SCROLL REVEAL ──
+const obs=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// ── MODAL — AUTHOR CHECK ──
+// Şifre: K1"230s
+// Encode: her karakter +3 → reverse → "v365%4N"
+const _s="v365%4N";
+function _d(s){return s.split('').reverse().map(c=>String.fromCharCode(c.charCodeAt(0)-3)).join('');}
+function checkCode(){
+  const v=document.getElementById('codeInput').value;
+  const r=document.getElementById('modalResult');
+  if(v===_d(_s)){r.className='ok';r.innerHTML='✓ ERİŞİM ONAYLANDI<br><br>Hazırlayan<br><strong>Kerem Özçilingir</strong><br>9-F &nbsp;·&nbsp; No: 796';}
+  else{r.className='fail';r.textContent='✗ Hatalı kod. Tekrar deneyin.';}
+}
+function openModal(){document.getElementById('modalOverlay').classList.add('open');document.getElementById('codeInput').value='';document.getElementById('modalResult').className='';document.getElementById('modalResult').textContent='';setTimeout(()=>document.getElementById('codeInput').focus(),200);}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
+function bgClose(e){if(e.target.id==='modalOverlay')closeModal();}
+
+// ── PERIODIC TABLE ──
+const elData=[
+  {z:1,sym:'H',name:'Hidrojen',mass:1.008,group:'nonmetal',config:'1s¹',period:1,gnum:1},
+  {z:2,sym:'He',name:'Helyum',mass:4.003,group:'noble',config:'1s²',period:1,gnum:18},
+  {z:3,sym:'Li',name:'Lityum',mass:6.941,group:'alkali',config:'[He]2s¹',period:2,gnum:1},
+  {z:4,sym:'Be',name:'Berilyum',mass:9.012,group:'metal',config:'[He]2s²',period:2,gnum:2},
+  {z:5,sym:'B',name:'Bor',mass:10.81,group:'metal',config:'[He]2s²2p¹',period:2,gnum:13},
+  {z:6,sym:'C',name:'Karbon',mass:12.01,group:'nonmetal',config:'[He]2s²2p²',period:2,gnum:14},
+  {z:7,sym:'N',name:'Azot',mass:14.01,group:'nonmetal',config:'[He]2s²2p³',period:2,gnum:15},
+  {z:8,sym:'O',name:'Oksijen',mass:16.00,group:'nonmetal',config:'[He]2s²2p⁴',period:2,gnum:16},
+  {z:9,sym:'F',name:'Flor',mass:19.00,group:'halogen',config:'[He]2s²2p⁵',period:2,gnum:17},
+  {z:10,sym:'Ne',name:'Neon',mass:20.18,group:'noble',config:'[He]2s²2p⁶',period:2,gnum:18},
+  {z:11,sym:'Na',name:'Sodyum',mass:22.99,group:'alkali',config:'[Ne]3s¹',period:3,gnum:1},
+  {z:12,sym:'Mg',name:'Magnezyum',mass:24.31,group:'metal',config:'[Ne]3s²',period:3,gnum:2},
+  {z:13,sym:'Al',name:'Alüminyum',mass:26.98,group:'metal',config:'[Ne]3s²3p¹',period:3,gnum:13},
+  {z:14,sym:'Si',name:'Silisyum',mass:28.09,group:'metal',config:'[Ne]3s²3p²',period:3,gnum:14},
+  {z:15,sym:'P',name:'Fosfor',mass:30.97,group:'nonmetal',config:'[Ne]3s²3p³',period:3,gnum:15},
+  {z:16,sym:'S',name:'Kükürt',mass:32.06,group:'nonmetal',config:'[Ne]3s²3p⁴',period:3,gnum:16},
+  {z:17,sym:'Cl',name:'Klor',mass:35.45,group:'halogen',config:'[Ne]3s²3p⁵',period:3,gnum:17},
+  {z:18,sym:'Ar',name:'Argon',mass:39.95,group:'noble',config:'[Ne]3s²3p⁶',period:3,gnum:18},
+];
+const typeLabels={alkali:['#ff6b35','Alkali Metal'],metal:['#c0c0ff','Metal'],nonmetal:['#00ff88','Ametal'],halogen:['#ff80ab','Halojen'],noble:['#a855f7','Soy Gaz']};
+const leg=document.getElementById('ptLegend');
+Object.entries(typeLabels).forEach(([k,v])=>{leg.innerHTML+=`<div class="leg-item"><div class="leg-dot" style="background:${v[0]};border-radius:2px;width:10px;height:10px;"></div>${v[1]}</div>`;});
+const cont=document.getElementById('ptContainer');
+const tip=document.getElementById('elemTooltip');
+const rows={1:[],2:[],3:[]};
+elData.forEach(e=>rows[e.period].push(e));
+function makePTRow(elements){
+  const row=document.createElement('div');row.className='pt-row';
+  let placed=0;
+  [...elements].sort((a,b)=>a.gnum-b.gnum).forEach(el=>{
+    while(placed<el.gnum-1){const sp=document.createElement('div');sp.style.cssText='width:44px;height:50px;flex-shrink:0;';row.appendChild(sp);placed++;}
+    const cell=document.createElement('div');cell.className=`pt-cell ${el.group}`;
+    const nm=el.name.length>7?el.name.substring(0,6)+'…':el.name;
+    cell.innerHTML=`<span class="num">${el.z}</span><span class="sym">${el.sym}</span><span class="nm">${nm}</span>`;
+    cell.addEventListener('mouseenter',ev=>{
+      cell.classList.add('active');
+      const col=typeLabels[el.group]||['#fff','Element'];
+      tip.innerHTML=`<div class="t-sym">${el.sym}</div><div class="t-name">${el.name}</div><div class="t-row"><span>Atom Numarası</span><span class="t-val">${el.z}</span></div><div class="t-row"><span>Atom Kütlesi</span><span class="t-val">${el.mass}</span></div><div class="t-row"><span>Element Türü</span><span class="t-val" style="color:${col[0]}">${col[1]}</span></div><div class="t-row"><span>Elektron Dizilişi</span><span class="t-val" style="font-size:10px">${el.config}</span></div><div class="t-row"><span>Periyot / Grup</span><span class="t-val">${el.period} / ${el.gnum}</span></div>`;
+      tip.classList.add('show');
+    });
+    cell.addEventListener('mousemove',ev=>{tip.style.left=(ev.clientX+16)+'px';tip.style.top=Math.max(10,ev.clientY-120)+'px';});
+    cell.addEventListener('mouseleave',()=>{cell.classList.remove('active');tip.classList.remove('show');});
+    row.appendChild(cell);placed++;
+  });
+  return row;
+}
+[1,2,3].forEach(p=>cont.appendChild(makePTRow(rows[p])));
+
+// ── QUIZ ──
+const qs=[
+  {q:'Bir atomun proton sayısı neyi belirler?',opts:['Kütlesini','Atom numarasını (element kimliğini)','Nötron sayısını','Katman sayısını'],ans:1,exp:'✅ Proton sayısı = atom numarası (Z). Bu sayı her element için benzersizdir.'},
+  {q:'Kütle numarası (A) hangi parçacıkların toplamıdır?',opts:['Proton + Elektron','Nötron + Elektron','Proton + Nötron','Tüm parçacıklar'],ans:2,exp:'✅ A = Z + N (Proton + Nötron). Elektronların kütlesi ihmal edilir.'},
+  {q:'Elektron kazanan atom ne tür iyon oluşturur?',opts:['Katyon (+)','Anyon (−)','İzotop','Nötr kalır'],ans:1,exp:'✅ Elektron kazanan atom → Anyon (−). Örn: Cl + e⁻ → Cl⁻'},
+  {q:'Periyodik tabloda 18. grup hangi element grubunu içerir?',opts:['Alkali metaller','Halojenler','Soy gazlar','Geçiş metalleri'],ans:2,exp:'✅ Soy gazlar (He, Ne, Ar...) Grup 18\'dedir. Dolu dış kabukları sayesinde çok kararlıdırlar.'},
+  {q:'İzotoplar birbirinden nasıl ayrılır?',opts:['Proton sayısı','Elektron sayısı','Nötron sayısı','Enerji düzeyi'],ans:2,exp:'✅ İzotoplar: eşit proton, farklı nötron sayısı. Aynı element, farklı kütle.'},
+];
+let qi=0,answered=false;
+function renderQuiz(){
+  const q=qs[qi];
+  document.getElementById('quizWrap').innerHTML=`
+    <div class="q-progress">${qs.map((_,i)=>`<div class="q-dot ${i<qi?'done':i===qi?'current':''}"></div>`).join('')}</div>
+    <div class="q-num">SORU ${qi+1} / ${qs.length}</div>
+    <div class="q-text">${q.q}</div>
+    <div class="q-opts">${q.opts.map((o,i)=>`<button class="q-btn" onclick="answer(${i})">${o}</button>`).join('')}</div>
+    <div class="q-feedback" id="qfb"></div>
+    <button class="q-next" onclick="nextQ()">Sonraki Soru →</button>
+  `;
+  answered=false;
+  document.querySelectorAll('.q-btn,.q-next').forEach(el=>{el.addEventListener('mouseenter',bigCursor);el.addEventListener('mouseleave',normCursor);});
+}
+function answer(i){if(answered)return;answered=true;const q=qs[qi];document.querySelectorAll('.q-btn')[i].classList.add(i===q.ans?'correct':'wrong');if(i!==q.ans)document.querySelectorAll('.q-btn')[q.ans].classList.add('correct');document.getElementById('qfb').textContent=i===q.ans?q.exp:`❌ Yanlış. ${q.exp}`;}
+function nextQ(){qi=(qi+1)%qs.length;renderQuiz();}
+renderQuiz();
+</script>
+</body>
+</html>
